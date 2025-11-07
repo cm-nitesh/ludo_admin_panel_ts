@@ -1,6 +1,8 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService.js";
+import { sendApiResponse } from "../utils/helpers.js";
+
 
 
 export class AuthController {
@@ -11,16 +13,18 @@ export class AuthController {
     }
 
     async login(req: Request, res: Response, next: NextFunction): Promise<any> {
+       const{ password,email  } = req.body;
        try {
-
-         const { user_name, phone,email  } = req.body;
-
-        const result = await this.service.login({ user_name, email, phone,  });
-        return result;
+        if(!password || !email) {
+          return sendApiResponse(res, 400, {}, 'email and password required')
+        }
+          
+        const result = await this.service.login(email, password);
+       return sendApiResponse(res, 201, result, 'Admin login successfully')
         
        } catch (error) {
-         console.log('error in singUp', error);
-         next();
+         console.log('error in admin-login', error);
+         next(error);
         
        }
 

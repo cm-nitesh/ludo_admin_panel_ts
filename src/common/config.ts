@@ -3,6 +3,14 @@ import { config } from "dotenv";
 
 config()
 
+export const secret = {
+     JWT_SECRET :process.env.JWT_SECRET,
+     JWT_EXPIRES_IN : process.env.JWT_EXPIRES_IN,
+     JWT_ACCESS_TOKEN_EXP: process.env.JWT_ACCESS_TOKEN_EXP,
+     JWT_REFRESH_TOKEN_EXP:  process.env.JWT_REFRESH_TOKEN_EXP,
+     REFRESH_JWT_SECRET: process.env.REFRESH_JWT_SECRET
+}
+
 const sequelize = new Sequelize({
   username:process.env.DB_USER!,
   database:process.env.DATABASE!,

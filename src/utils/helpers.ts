@@ -1,7 +1,17 @@
-import { Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt, { SignOptions, Secret } from 'jsonwebtoken';
 import { config } from 'dotenv';
 import { secret } from '../common/config.js';
+import { APIError } from '../common/error.js';
+
+declare global {
+    namespace Express {
+        interface Request {
+            admin?: any;
+        }
+    }
+}
+
 config();
 
 const JWT_SECRET = secret.JWT_SECRET as string;
@@ -28,4 +38,25 @@ export async function generateToken(admin: any): Promise<string> {
     };
 
     return jwt.sign(payload, JWT_SECRET as Secret, options);
+}
+
+
+export async function verifyAdmin(req: Request, res: Response, next: NextFunction){
+    try {
+        const authHeader= req.headers.authorization;
+        if(!authHeader){
+            throw new APIError("Access token missing", 401);
+        }
+        const token = authHeader.split(" ")[1];
+        if(!token){
+            throw new APIError("Access token missing", 401);
+        }
+        const decode = jwt.verify(token, JWT_SECRET as Secret);
+        req.admin = decode;
+        next();
+    } catch (error) {
+        console.log("verifyAdmin error:", error);
+        next(new APIError("Invalid or expired token", 401));
+        
+    }
 }

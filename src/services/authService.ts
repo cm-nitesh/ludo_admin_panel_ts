@@ -52,7 +52,6 @@ export class AuthService {
 
         try {
             const users = await this.dao.getAllUser();
-
             return {
                 total_users: users.length,
                 users
@@ -63,4 +62,117 @@ export class AuthService {
         }
 
     }
+
+    async getUserById(userId: number) {
+
+        try {
+            const users = await this.dao.getUserById(userId);
+            if (!users) {
+                throw new APIError("User not found", 404);
+            }
+            return users;
+        } catch (error) {
+            console.log(`error in get all users ${error}`)
+            throw new APIError("Failed to fetch in users by id", 500);
+        }
+
+    }
+
+    async updateUserStatus(userId: number, status: string, description:string):Promise<any>{
+        try {
+            const allowStatus = ['blocked', 'unblocked'];
+            if(!allowStatus.includes(status)){
+                throw new APIError('Invalid status. Allowed blocked | unblocked', 400);
+
+            }
+
+            const user = await this.dao.findUserById(userId);
+            if(!user){
+                throw new APIError('User not found', 404)
+
+            }
+
+            const currentStatus = (user as any).status;
+            if (currentStatus === status) {
+                return {
+                    message: `user already ${status}`,
+                    userId,
+                    currentStatus
+                };
+            }
+
+            await this.dao.updateUserStatus(userId, status, description);
+            return{
+                message:`User ${status} successfully`,
+                userId,
+                status,
+                description
+            }
+        } catch (error) {
+            throw new APIError("Failed to update user status", 500);
+        }
+    }
+
+
+  async getFilteredTransactions(fromDate: string, toDate: string, type?: "recharge" | "winning"): Promise<any[]> {
+    try {
+         const rows = await this.dao.getFilteredTransactions(fromDate, toDate, type);
+
+    return rows.map((tx: any) => ({
+      userId: tx.user.id,
+      username: tx.user.name,
+      date: tx.created_at,
+      transaction_type: tx.request_type,
+      amount: tx.amount
+    }));
+    } catch (error) {
+        throw new APIError(`failed in get filter transcation`, 500)
+    }
+   
+  };
+
+  async getWithdrawalList() {
+
+    try {
+          const rows = await this.dao.getWithdrawalList();
+
+  const result = [];
+
+  for (const tx of rows) {
+    const walletAmount = await this.dao.calculateWallet(tx.user_id);
+
+    result.push({
+      userId: tx.user.id,
+      username: tx.user.name,
+      contact: tx.user.contact,
+      current_wallet_amount: walletAmount,
+      withdrawal_amount: tx.amount,
+      status: tx.status
+    });
+  }
+
+  return result;
+    } catch (error) {
+        console.log(error)
+        throw new APIError('Failed get withdrawal list amount', 500)
+    }
+
+}
+
+async updateTransactionStatus(id: number, status: "success" | "failed") {
+
+    try {
+         if (!["success", "failed"].includes(status)) {
+    throw new APIError("Invalid status value", 400);
+  }
+
+  const updated = await this.dao.updateTransactionStatus(id, status);
+  return updated;
+    } catch (error) {
+        throw new APIError('failed in update of transaction status', 500)
+    }
+ 
+}
+
+
 }

@@ -26,6 +26,8 @@ export interface UserAttributes {
   upi_id: string | null;
   created_at: Date | null;
   updated_at: Date | null;
+  status: string | null;
+  status_description: string | null;
 }
 
 export type UserCreationAttributes = Optional<UserAttributes, "id">;
@@ -53,6 +55,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public upi_id!: string | null;
   public created_at!: Date | null;
   public updated_at!: Date | null;
+  public status!: string | null;
+  public status_description!: string | null;
 }
 
 User.init(
@@ -81,6 +85,8 @@ User.init(
     upi_id: DataTypes.STRING,
     created_at: DataTypes.DATE,
     updated_at: DataTypes.DATE,
+    status: { type: DataTypes.STRING, defaultValue: "unblocked" },
+    status_description: { type: DataTypes.TEXT },
   },
   {
     sequelize,

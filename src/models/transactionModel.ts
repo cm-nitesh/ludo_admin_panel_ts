@@ -2,13 +2,11 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../common/config.js";
 
-
-
 export interface TransactionAttributes {
   id: number;
   user_id: number;
   amount: number;
-  request_type: "recharge" | "winning";
+  request_type: "recharge" | "winning" | "withdrawal" | "loss";
   status: "pending" | "success" | "failed";
   created_at?: Date;
   updated_at?: Date;
@@ -26,12 +24,14 @@ export class Transaction
   public id!: number;
   public user_id!: number;
   public amount!: number;
-  public request_type!: "recharge" | "winning";
+
+  public request_type!: "recharge" | "winning" | "withdrawal" | "loss";
+
   public status!: "pending" | "success" | "failed";
+
   public created_at!: Date;
   public updated_at!: Date;
 }
-
 
 Transaction.init(
   {
@@ -52,7 +52,7 @@ Transaction.init(
     },
 
     request_type: {
-      type: DataTypes.ENUM("recharge", "winning"),
+      type: DataTypes.ENUM("recharge", "winning", "withdrawal", "loss"),
       allowNull: false,
     },
 

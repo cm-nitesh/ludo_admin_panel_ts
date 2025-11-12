@@ -1,7 +1,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService.js";
-import { sendApiResponse } from "../utils/helpers.js";
+  import { sendApiResponse } from "../utils/helpers.js";
 
 
 
@@ -16,11 +16,13 @@ export class AuthController {
     const { password, email } = req.body;
     try {
       if (!password || !email) {
-        return sendApiResponse(res, 400, {}, 'email and password required')
+         return sendApiResponse(res, 400, {}, 'email and password required')
+        
       }
 
       const result = await this.service.login(email, password);
-      return sendApiResponse(res, 201, result, 'Admin login successfully')
+      //  return sendApiResponse(res, 201, result, 'Admin login successfully')
+       return res.json(result)
 
     } catch (error) {
       console.log('error in admin-login', error);
@@ -34,7 +36,8 @@ export class AuthController {
     try {
       const result = await this.service.getDashboardStats();
 
-      return sendApiResponse(res, 200, result, "Dashboard stats fetched successfully");
+      // return sendApiResponse(res, 200, result, "Dashboard stats fetched successfully");
+      res.json(result)
 
     } catch (error) {
       console.log("error in dashboard-stats", error);
@@ -45,7 +48,8 @@ export class AuthController {
   async getAllUser(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await this.service.getAllUser();
-      return sendApiResponse(res, 200, data, "Users fetched successfully");
+      // return sendApiResponse(res, 200, data, "Users fetched successfully");
+      return res.json(data)
     } catch (error) {
       next(error);
     }
@@ -55,7 +59,8 @@ export class AuthController {
     const userId= Number(req.params.id);
     try {
       const data = await this.service.getUserById(userId);
-      return sendApiResponse(res, 200, data, "Users fetched successfully");
+      // return sendApiResponse(res, 200, data, "Users fetched successfully");
+      return res.json(data)
     } catch (error) {
       next(error);
     }
@@ -68,7 +73,8 @@ export class AuthController {
 
     const result = await this.service.updateUserStatus(userId, status, description);
 
-    return sendApiResponse(res, 200, result, "User status updated");
+    // return sendApiResponse(res, 200, result, "User status updated");
+    return res.json(result)
   } catch (err) {
     next(err);
   }
@@ -95,7 +101,8 @@ export class AuthController {
         txType
       );
 
-      return sendApiResponse(res, 200, result, "Transaction list fetched");
+      // return sendApiResponse(res, 200, result, "Transaction list fetched");
+      return res.json(result)
     } catch (error) {
       next(error);
     }
@@ -104,7 +111,8 @@ export class AuthController {
   async getWithdrawalList(req:Request, res:Response, next:NextFunction) {
   try {
     const rows = await this.service.getWithdrawalList();
-    return sendApiResponse(res, 200, rows, "Withdrawal list fetched");
+    // return sendApiResponse(res, 200, rows, "Withdrawal list fetched");
+    return res.json(rows)
   } catch (err) {
     next(err);
   }
@@ -121,7 +129,8 @@ async updateTransactionStatus(req: Request, res: Response, next: NextFunction) {
 
     const result = await this.service.updateTransactionStatus(id, status);
 
-    return sendApiResponse(res, 200, result, "Transaction status updated");
+    // return sendApiResponse(res, 200, result, "Transaction status updated");
+    return res.json(result)
   } catch (error) {
     next(error);
   }

@@ -12,7 +12,7 @@ const controller = new AuthController(new AuthService(new UserDao()));
 router.post('/admin-login',controller.login.bind(controller))
 router.get('/admin-dashboard',verifyAdmin , controller.getStats.bind(controller));
 router.get("/users", verifyAdmin, controller.getAllUser.bind(controller));
-router.get("/users/:id", verifyAdmin, controller.getUserById.bind(controller));
+router.get("/users-details/:id", verifyAdmin, controller.getUserById.bind(controller));
 router.patch("/users-status/:id", verifyAdmin, controller.updateUserStatus.bind(controller));
 router.get("/transactions", verifyAdmin, controller.getFilteredTransactions.bind(controller));
 router.get('/withdrawals', verifyAdmin,controller.getWithdrawalList.bind(controller));

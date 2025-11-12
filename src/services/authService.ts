@@ -17,11 +17,12 @@ export class AuthService {
             if (!admin) {
                 throw new APIError('admin is not exist', 400)
             }
-            const accessToken = await generateToken(admin);
+            const token = await generateToken(admin);
             return {
                 id: admin.id,
                 name: admin.name,
-                accessToken
+                email:admin.email,
+                token
             }
 
         } catch (error: any) {
@@ -103,7 +104,6 @@ export class AuthService {
 
             await this.dao.updateUserStatus(userId, status, description);
             return{
-                message:`User ${status} successfully`,
                 userId,
                 status,
                 description

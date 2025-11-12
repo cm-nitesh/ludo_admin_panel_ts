@@ -163,7 +163,7 @@ export class UserDao {
   let wallet = 0;
 
   rows.forEach(tx => {
-    // treat recharge and winning as credits, withdrawal and loss as debits
+   
     if (["recharge", "winning"].includes(tx.request_type as string)) {
       wallet += Number(tx.amount);
     }

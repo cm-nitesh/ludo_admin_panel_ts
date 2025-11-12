@@ -53,6 +53,7 @@ export class AuthService {
 
         try {
             const users = await this.dao.getAllUser();
+            console.log(users)
             return {
                 total_users: users.length,
                 users

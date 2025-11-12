@@ -1,6 +1,6 @@
 import { User } from '../models/userModel.js';
 import sequelize from '../common/config.js';
-import { QueryTypes, Op } from 'sequelize';
+import { QueryTypes, Op, Sequelize } from 'sequelize';
 import { Transaction } from '../models/transactionModel.js';
 
 export class UserDao {
@@ -63,6 +63,21 @@ export class UserDao {
         try {
             return await User.findAll({
                 // attributes: ["id", "name", "email", "created_at"], // jo fields dikhane ho
+
+                 attributes: [
+        "id",
+        [Sequelize.col("name"), "username"], 
+        "email",
+        "phone",
+        "provider",
+        "uid",
+        "status",
+        "referral_code",
+        "referred_by_id",
+        "upi_id",
+        "created_at",
+        "updated_at"
+      ],
                 order: [["created_at", "DESC"]]
             });
         } catch (error) {

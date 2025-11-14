@@ -86,18 +86,44 @@ export class UserDao {
         }
 
     }
-    async getUserById(userId: number) {
-        try {
-            return await User.findOne({
-                where: { id: userId },
-                attributes: ["id", "name", "email", "created_at"], // jo fields dikhane ho
-            });
-        } catch (error) {
-            console.error('Error in getting in fetching users by id', error);
-            throw error;
-        }
+  async getUserById(userId: number) {
+  try {
+   const [user] = await sequelize.query(
+  `
+  SELECT 
+    "User"."id",
+    "User"."name" AS "username",
+    "User"."phone" As "contact",
+    "User"."email",
+    "User"."created_at" AS "registered_at",
+    (
+      SELECT COALESCE(SUM(amount), 0)
+      FROM transactions AS t
+      WHERE t."user_id" = "User"."id"   
+      AND t.request_type = 'recharge'
+    ) AS "total_transaction_recharge",
+    (
+      SELECT COALESCE(SUM(amount), 0)
+      FROM transactions AS t
+      WHERE t."user_id" = "User"."id"   
+      AND t.request_type = 'winning'
+    ) AS "total_winning"
+  FROM "users" AS "User"
+  WHERE "User"."id" = :userId
+  `,
+  {
+    replacements: { userId },
+    type: QueryTypes.SELECT,
+  }
+);
 
-    }
+
+    return user;
+  } catch (error) {
+    console.error("Error in getUserById:", error);
+    throw new Error("Failed to fetch in users by id");
+  }
+}
 
     async findUserById(id: number) {
         try {

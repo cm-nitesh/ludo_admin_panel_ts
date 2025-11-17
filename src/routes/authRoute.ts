@@ -22,6 +22,8 @@ router.get('/withdrawals', verifyAdmin,controller.getWithdrawalList.bind(control
 router.patch('/transaction-status/:id', verifyAdmin, controller.updateTransactionStatus.bind(controller))
 
 router.get("/admin-profile", verifyAdmin, controllerAdmin.getProfile.bind(controllerAdmin));
+router.post('/refresh-token', controller.refresh.bind(controller));
+router.post('/logout', controller.logout.bind(controller));
 
 
 export default router;

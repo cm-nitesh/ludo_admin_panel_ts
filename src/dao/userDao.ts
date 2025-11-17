@@ -235,6 +235,46 @@ async updateTransactionStatus(id: number, status: "success" | "failed") {
  
 }
 
+async storeRefreshToken(adminId:number, token: string, expiry: Date): Promise<any>{
+    try {
+        const result = await sequelize.query(`update admin Set refresh_token =:token, refresh_token_expiry =:expiry where id =:adminId`,{
+            replacements:{adminId,token,expiry},
+            type: QueryTypes.UPDATE
+        });
+        return result;
+    } catch (error) {
+        console.log(`error in storing refresh token ${error}`);
+        throw error;
+    }
+}
+
+async findAdminByRefreshToken(refreshToken: string) {
+    const result = await sequelize.query(
+        `SELECT * FROM admin WHERE refresh_token = :token LIMIT 1`,
+        {
+            replacements: { token: refreshToken },
+            type: QueryTypes.SELECT
+        }
+    );
+    return result[0] || null;
+}
+async clearRefreshToken(refreshToken: string) {
+    try {
+          await sequelize.query(
+        `UPDATE admin 
+         SET refresh_token = NULL,
+             refresh_token_expiry = NULL
+         WHERE refresh_token = :token`,
+        {
+            replacements: { token: refreshToken },
+            type: QueryTypes.UPDATE
+        }
+    );
+    } catch (error) {
+        throw error;
+    }
+  
+}
 
 }
 

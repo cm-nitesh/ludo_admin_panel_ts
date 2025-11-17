@@ -40,15 +40,29 @@ export async function generateToken(admin: any): Promise<string> {
     return jwt.sign(payload, JWT_SECRET as Secret, options);
 }
 
+export async function generateRefreshToken(admin: any): Promise<string> {
+    const payload = {
+        id: admin.id,
+        // email: admin.email,
+        // name: admin.name
+    };
 
-export async function verifyAdmin(req: Request, res: Response, next: NextFunction){
+    const options: SignOptions = {
+        expiresIn: secret.JWT_REFRESH_TOKEN_EXP as unknown as SignOptions['expiresIn']
+    };
+
+    return jwt.sign(payload, REFRESH_JWT_SECRET as Secret, options);
+}
+
+
+export async function verifyAdmin(req: Request, res: Response, next: NextFunction) {
     try {
-        const authHeader= req.headers.authorization;
-        if(!authHeader){
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
             throw new APIError("Access token missing", 401);
         }
         const token = authHeader.split(" ")[1];
-        if(!token){
+        if (!token) {
             throw new APIError("Access token missing", 401);
         }
         const decode = jwt.verify(token, JWT_SECRET as Secret);
@@ -57,6 +71,15 @@ export async function verifyAdmin(req: Request, res: Response, next: NextFunctio
     } catch (error) {
         console.log("verifyAdmin error:", error);
         next(new APIError("Invalid or expired token", 401));
-        
+
+    }
+
+}
+
+export async function verifyTokenValidity(refreshToken: string): Promise<any> {
+    try {
+        return jwt.verify(refreshToken, REFRESH_JWT_SECRET)
+    } catch (error) {
+      console.log(`errror in validating the token ${error}`)
     }
 }

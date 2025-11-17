@@ -1,8 +1,12 @@
 import type { NextFunction } from "express";
 import { UserDao } from "../dao/userDao.js";
 import { APIError } from "../common/error.js";
-import { generateToken } from "../utils/helpers.js";
+import { generateToken , generateRefreshToken, verifyTokenValidity} from "../utils/helpers.js";
+import { secret } from '../common/config.js';
 
+
+const  JWT_REFRESH_TOKEN_EXP = secret.JWT_REFRESH_TOKEN_EXP as string;
+ JWT_REFRESH_TOKEN_EXP
 export class AuthService {
     private dao: UserDao;
 
@@ -18,11 +22,18 @@ export class AuthService {
                 throw new APIError('admin is not exist', 400)
             }
             const token = await generateToken(admin);
+            const refreshToken = await generateRefreshToken(admin);
+            const expSeconds = Number(JWT_REFRESH_TOKEN_EXP.replace("d", "")) * 24 * 60 * 60; 
+            const expiryDate = new Date(Date.now() + expSeconds * 1000);
+            await this.dao.storeRefreshToken(admin.id, refreshToken,expiryDate)
             return {
                 id: admin.id,
                 name: admin.name,
                 email:admin.email,
-                token
+                token,
+                refreshToken,
+
+                
             }
 
         } catch (error: any) {
@@ -173,6 +184,30 @@ async updateTransactionStatus(id: number, status: "success" | "failed") {
         throw new APIError('failed in update of transaction status', 500)
     }
  
+}
+
+async refreshToken(refreshToken: string) {
+
+    try {
+         const admin = await this.dao.findAdminByRefreshToken(refreshToken);
+    if (!admin) throw new APIError("Invalid refresh token", 401);
+    await verifyTokenValidity(refreshToken)
+    const newAccess = await generateToken(admin);
+
+    return { accessToken: newAccess };
+    } catch (error) {
+        throw new APIError('falied to find refresh token', 500)
+    }
+   
+}
+
+async logout(refreshToken: string) {
+    try {
+        await this.dao.clearRefreshToken(refreshToken);
+    } catch (error) {
+         throw new APIError('falied to logout', 500)
+    }
+    
 }
 
 

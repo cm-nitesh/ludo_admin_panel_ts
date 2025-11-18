@@ -105,44 +105,89 @@ export class UserDao {
   }
 }
 
-  async getUserById(userId: number) {
+async getUserById(userId: number) {
   try {
-   const [user] = await sequelize.query(
-  `
-  SELECT 
-    "User"."id",
-    "User"."name" AS "username",
-    "User"."phone" As "contact",
-    "User"."email",
-    "User"."created_at" AS "registered_at",
-    (
-      SELECT COALESCE(SUM(amount), 0)
-      FROM transactions AS t
-      WHERE t."user_id" = "User"."id"   
-      AND t.request_type = 'recharge'
-    ) AS "total_transaction_recharge",
-    (
-      SELECT COALESCE(SUM(amount), 0)
-      FROM transactions AS t
-      WHERE t."user_id" = "User"."id"   
-      AND t.request_type = 'winning'
-    ) AS "total_winning"
-  FROM "users" AS "User"
-  WHERE "User"."id" = :userId
-  `,
-  {
-    replacements: { userId },
-    type: QueryTypes.SELECT,
-  }
-);
+    const [user] = await sequelize.query(
+      `
+      SELECT 
+        "User"."id",
+        "User"."name" AS "username",
+        "User"."phone" AS "contact",
+        "total_game_played",
+        "User"."email",
+        "User"."created_at" AS "registered_at",
 
+        (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'recharge'
+        ) AS "total_transaction_recharge",
+
+        (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'winning'
+        ) AS "total_winning",
+         (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'loss'
+        ) AS "total_loss",
+
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', t.id,
+              'user_id', t.user_id,
+              'amount', t.amount,
+              'request_type', t.request_type,
+              'status', t.status,
+              'created_at', t.created_at,
+              'updated_at', t.updated_at
+            )
+            ORDER BY t.created_at DESC
+          )
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+        ) AS "transactions",
+
+        (
+          SELECT json_agg(
+            json_build_object(
+              'game_id', g.id,
+              'date', g.created_at,
+              'player1', g.player1,
+              'player2', g.player2,
+              'amount', g.room_amount,
+              'result', g.result
+            )
+            ORDER BY g.created_at DESC
+          )
+          FROM game AS g
+          WHERE g.player1 = "User".id
+             OR g.player2 = "User".id
+        ) AS "game_history"
+
+      FROM "users" AS "User"
+      WHERE "User"."id" = :userId
+      `,
+      {
+        replacements: { userId },
+        type: QueryTypes.SELECT,
+      }
+    );
 
     return user;
   } catch (error) {
     console.error("Error in getUserById:", error);
-    throw new Error("Failed to fetch in users by id");
+    throw new Error("Failed to fetch user by id");
   }
 }
+
+
 
     async findUserById(id: number) {
         try {
@@ -294,6 +339,89 @@ async clearRefreshToken(refreshToken: string) {
     }
   
 }
+
+async getAllUserTransactionDetail(userId: number) {
+  try {
+    const [user] = await sequelize.query(
+      `
+      SELECT 
+        "User"."id",
+        "User"."name" AS "username",
+        "User"."phone" AS "contact",
+        "total_game_played",
+        "User"."email",
+        "User"."created_at" AS "registered_at",
+
+        (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'recharge'
+        ) AS "total_transaction_recharge",
+
+        (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'winning'
+        ) AS "total_winning",
+         (
+          SELECT COALESCE(SUM(amount), 0)
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+          AND t.request_type = 'loss'
+        ) AS "total_loss",
+
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', t.id,
+              'user_id', t.user_id,
+              'amount', t.amount,
+              'request_type', t.request_type,
+              'status', t.status,
+              'created_at', t.created_at,
+              'updated_at', t.updated_at
+            )
+            ORDER BY t.created_at DESC
+          )
+          FROM transactions AS t
+          WHERE t."user_id" = "User"."id"
+        ) AS "transactions",
+
+        (
+          SELECT json_agg(
+            json_build_object(
+              'game_id', g.id,
+              'date', g.created_at,
+              'player1', g.player1,
+              'player2', g.player2,
+              'amount', g.room_amount,
+              'result', g.result
+            )
+            ORDER BY g.created_at DESC
+          )
+          FROM game AS g
+          WHERE g.player1 = "User".id
+             OR g.player2 = "User".id
+        ) AS "game_history"
+
+      FROM "users" AS "User"
+      WHERE "User"."id" = :userId
+      `,
+      {
+        replacements: { userId },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    return user;
+  } catch (error) {
+    console.error("Error in getUserById:", error);
+    throw new Error("Failed to fetch user by id");
+  }
+}
+
 
 }
 

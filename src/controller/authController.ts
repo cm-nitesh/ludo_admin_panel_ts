@@ -163,5 +163,16 @@ export class AuthController {
    
   }
 
+   async getAllUserTransactionDetail(req: Request, res: Response, next: NextFunction) {
+    const userId = Number(req.params.id);
+    try {
+      const data = await this.service.getAllUserTransactionDetail(userId);
+      // return sendApiResponse(res, 200, data, "Users fetched successfully");
+      return res.json(data)
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 

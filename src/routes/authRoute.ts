@@ -19,11 +19,13 @@ router.get("/users-details/:id", verifyAdmin, controller.getUserById.bind(contro
 router.patch("/users-status/:id", verifyAdmin, controller.updateUserStatus.bind(controller));
 router.get("/transactions", verifyAdmin, controller.getFilteredTransactions.bind(controller));
 router.get('/withdrawals', verifyAdmin,controller.getWithdrawalList.bind(controller));
-router.patch('/transaction-status/:id', verifyAdmin, controller.updateTransactionStatus.bind(controller))
+router.patch('/transaction-status/:id', verifyAdmin, controller.updateTransactionStatus.bind(controller));
+router.get("/user-transactions/:id", verifyAdmin, controller.getAllUserTransactionDetail.bind(controller));
 
 router.get("/admin-profile", verifyAdmin, controllerAdmin.getProfile.bind(controllerAdmin));
 router.post('/refresh-token', controller.refresh.bind(controller));
 router.post('/logout', controller.logout.bind(controller));
+
 
 
 export default router;

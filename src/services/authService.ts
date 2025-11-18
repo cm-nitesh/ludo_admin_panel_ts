@@ -45,7 +45,7 @@ export class AuthService {
         try {
             const totalUsers = await this.dao.getTotalUserCount();
             const txStats = await this.dao.getTransactionStats();
-            const total_gamePlayed = 0
+        
 
             return {
                 total_users: totalUsers,
@@ -210,5 +210,18 @@ async logout(refreshToken: string) {
     
 }
 
+ async getAllUserTransactionDetail(userId: number) {
 
+        try {
+            const users = await this.dao.getAllUserTransactionDetail(userId);
+            if (!users) {
+                throw new APIError("User not found", 404);
+            }
+            return users;
+        } catch (error) {
+            console.log(`error in get all users's transaction details  ${error}`)
+            throw new APIError("Failed to fetch in users by id", 500)
+
+    }
+ }
 }

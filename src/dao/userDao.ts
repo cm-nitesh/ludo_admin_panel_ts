@@ -59,14 +59,12 @@ export class UserDao {
 
     };
 
-    async getAllUser() {
-        try {
-            return await User.findAll({
-                // attributes: ["id", "name", "email", "created_at"], // jo fields dikhane ho
-
-                 attributes: [
+ async getAllUser() {
+  try {
+    return await User.findAll({
+      attributes: [
         "id",
-        [Sequelize.col("name"), "username"], 
+        [Sequelize.col("name"), "username"],
         "email",
         "phone",
         "provider",
@@ -75,17 +73,38 @@ export class UserDao {
         "referral_code",
         "referred_by_id",
         "upi_id",
-        "created_at",
-        "updated_at"
-      ],
-                order: [["created_at", "DESC"]]
-            });
-        } catch (error) {
-            console.error('Error in getting in fetching users from dao', error);
-            throw error;
-        }
+        "total_game_played",
+        [sequelize.col("created_at"), "registered_at"],
+        "updated_at",
 
-    }
+        [
+          sequelize.literal(`(
+            SELECT COALESCE(SUM(t.amount), 0)
+            FROM transactions AS t
+            WHERE t.user_id = "User".id AND t.request_type = 'recharge'
+          )`),
+          "total_transaction_recharge"
+        ],
+
+        [
+          sequelize.literal(`(
+            SELECT COALESCE(SUM(t.amount), 0)
+            FROM transactions AS t
+            WHERE t.user_id = "User".id AND t.request_type = 'winning'
+          )`),
+          "total_winning"
+        ],
+      ],
+
+      order: [["created_at", "DESC"]],
+    });
+
+  } catch (error) {
+    console.error("Error in fetching users:", error);
+    throw error;
+  }
+}
+
   async getUserById(userId: number) {
   try {
    const [user] = await sequelize.query(

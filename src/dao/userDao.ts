@@ -69,7 +69,7 @@ export class UserDao {
 
     };
 
- async getAllUser() {
+async getAllUser() {
   try {
     return await User.findAll({
       attributes: [
@@ -79,31 +79,37 @@ export class UserDao {
         "phone",
         "provider",
         "uid",
-        "status",
         "referral_code",
         "referred_by_id",
         "upi_id",
-        "total_game_played",
+
         [sequelize.col("created_at"), "registered_at"],
         "updated_at",
 
+        // TOTAL WALLET RECHARGE (wallet_recharge only)
         [
           sequelize.literal(`(
             SELECT COALESCE(SUM(t.amount), 0)
-            FROM wallet_transactions AS t
-            WHERE t.wallet_transaction_request_id = "User".id AND t.transaction_for = 'wallet_recharge'
+            FROM wallet_transactions t
+            WHERE t.wallet_transaction_request_id = "User".id
+              AND t.transaction_for = 'wallet_recharge'
+            
           )`),
           "total_transaction_recharge"
         ],
 
         [
           sequelize.literal(`(
-            SELECT COALESCE(SUM(t.amount), 0)
-            FROM transactions AS t
-            WHERE t.user_id = "User".id AND t.request_type = 'winning'
+            SELECT COUNT(*)
+            FROM bets b
+            WHERE 
+              (b.player_1_id = "User".id OR b.player_2_id = "User".id)
+              AND b.bet_status IN ('completed', 'partially_cancelled')
           )`),
-          "total_winning"
+          "total_game_played"
         ],
+
+       
       ],
 
       order: [["created_at", "DESC"]],
@@ -114,6 +120,9 @@ export class UserDao {
     throw error;
   }
 }
+
+
+
 
 async getUserById(userId: number) {
   try {
@@ -373,7 +382,7 @@ async findAdminByRefreshToken(refreshToken: string) {
 async clearRefreshToken(refreshToken: string) {
     try {
           await sequelize.query(
-        `UPDATE admin 
+        `UPDATE admin_users
          SET refresh_token = NULL,
              refresh_token_expiry = NULL
          WHERE refresh_token = :token`,
@@ -502,5 +511,25 @@ async getAllBets() {
     }
     
   }
+
+ async getBetStatusById(betId: number) {
+  try {
+    return await Bet.findOne({
+      where: { id: betId },
+      attributes: [
+        "id",
+        "contest_id",
+        "player_1_id",
+        "player_2_id",
+        "player_1_result",
+        "player_2_result",
+        "bet_status"
+      ],
+    });
+  } catch (error) {
+    console.error("DAO Error:", error);
+    throw error;
+  }
+}
 }
 

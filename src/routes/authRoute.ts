@@ -27,6 +27,7 @@ router.post('/refresh-token', controller.refresh.bind(controller));
 router.post('/logout', controller.logout.bind(controller));
 router.get("/bets", verifyAdmin, controller.getAllBets.bind(controller));
 router.post("/bets", verifyAdmin,controller.createBet.bind(controller));
+router.get("/bets-status/:id", verifyAdmin,controller.betStatus.bind(controller));
 
 
 

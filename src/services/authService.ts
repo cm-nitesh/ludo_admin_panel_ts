@@ -261,4 +261,27 @@ async logout(refreshToken: string) {
     }
   }
 
+
+  async getBetStatusById(id: number) {
+
+    try {
+         const bet = await this.dao.getBetStatusById(id);
+
+    if (!bet) throw new APIError("Bet not found", 404);
+     if (bet.bet_status !== "completed") {
+      throw new APIError(
+        `Bet status is pending for this user (current status: ${bet.bet_status})`,
+        400
+      );
+    }
+    return bet;
+    } catch (error) {
+         if (error instanceof APIError) {
+      throw error;
+    }
+        throw new APIError(`Failed to bet status : ${error}`, 500)
+    }
+   
+  }
+
 }

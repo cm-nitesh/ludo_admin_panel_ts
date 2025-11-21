@@ -228,5 +228,19 @@ async getFilteredTransactions(req: Request, res: Response, next: NextFunction) {
       next(err);
     }
   }
+
+  async betStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+
+      const { id } = req.params;
+
+      const result = await this.service.getBetStatusById(Number(id));
+      
+
+      return sendApiResponse(res, 200, result, "Bet status fetched");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 

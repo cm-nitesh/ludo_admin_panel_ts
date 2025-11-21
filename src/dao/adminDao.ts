@@ -5,7 +5,7 @@ export class AdminDao {
     async findAdminById(id: number): Promise<any> {
         try {
             const result = await sequelize.query(
-                `SELECT id, name, email FROM admin WHERE id = :id LIMIT 1`,
+                `SELECT id, email FROM admin_users WHERE id = :id LIMIT 1`,
                 {
                     replacements: { id },
                     type: QueryTypes.SELECT
@@ -14,7 +14,7 @@ export class AdminDao {
 
             return result[0] || null;
         } catch (error) {
-            console.log("Error fetching admin by ID:", error);
+            console.log(`Error fetching admin by ID${error}`, error);
             throw error;
         }
     }

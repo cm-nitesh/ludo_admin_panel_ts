@@ -4,6 +4,15 @@ import { config } from 'dotenv';
 import { secret } from '../common/config.js';
 import { APIError } from '../common/error.js';
 
+export interface BetPayload {
+  contest_id: number;
+  player_1_id: number;
+  player_2_id?: number | null;
+  player_1_result?: string | null;
+  player_2_result?: string | null;
+  partially_cancelled_by_id?: number | null;
+}
+
 declare global {
     namespace Express {
         interface Request {
@@ -82,4 +91,45 @@ export async function verifyTokenValidity(refreshToken: string): Promise<any> {
     } catch (error) {
       console.log(`errror in validating the token ${error}`)
     }
+}
+
+export function processBetLogic(payload: BetPayload) {
+  let {
+    contest_id,
+    player_1_id,
+    player_2_id = null,
+    player_1_result = null,
+    player_2_result = null,
+    partially_cancelled_by_id = null
+  } = payload;
+
+  let bet_status = "waiting";
+
+  // Partial cancellation
+  if (partially_cancelled_by_id) {
+    bet_status = "partially_cancelled";
+  }
+
+  // Matched
+  else if (player_1_id && player_2_id && !player_1_result && !player_2_result) {
+    bet_status = "matched";
+  }
+
+  // Completed logic
+  if (player_1_result) {
+    bet_status = "completed";
+
+    if (player_1_result === "win") player_2_result = "loss";
+    if (player_1_result === "loss") player_2_result = "win";
+  }
+
+  return {
+    contest_id,
+    player_1_id,
+    player_2_id,
+    player_1_result,
+    player_2_result,
+    partially_cancelled_by_id,
+    bet_status
+  };
 }

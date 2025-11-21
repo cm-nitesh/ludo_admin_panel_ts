@@ -1,7 +1,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService.js";
-import { sendApiResponse } from "../utils/helpers.js";
+import { sendApiResponse, processBetLogic } from "../utils/helpers.js";
 
 
 
@@ -13,14 +13,14 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response, next: NextFunction): Promise<any> {
-    const { password, email } = req.body;
+    const { encrypted_password, email } = req.body;
     try {
-      if (!password || !email) {
+      if (!encrypted_password || !email) {
         return sendApiResponse(res, 400, {}, 'email and password required')
 
       }
 
-      const result = await this.service.login(email, password);
+      const result = await this.service.login(email, encrypted_password);
       //  return sendApiResponse(res, 201, result, 'Admin login successfully')
       return res.json(result)
 
@@ -80,61 +80,62 @@ export class AuthController {
     }
   }
 
-  async getFilteredTransactions(req: Request, res: Response, next: NextFunction) {
-    try {
-      const fromDate = req.query.fromDate;
-      const toDate = req.query.toDate;
-      const type = req.query.type;
+async getFilteredTransactions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { fromDate, toDate, type } = req.query;
 
-      if (typeof fromDate !== "string" || typeof toDate !== "string") {
-        return sendApiResponse(res, 400, {}, "fromDate and toDate must be provided as strings");
-      }
-
-      const txType =
-        typeof type === "string" && (type === "recharge" || type === "winning")
-          ? (type as "recharge" | "winning")
-          : undefined;
-
-      const result = await this.service.getFilteredTransactions(
-        fromDate,
-        toDate,
-        txType
+    if (typeof fromDate !== "string" || typeof toDate !== "string") {
+      return sendApiResponse(
+        res,
+        400,
+        {},
+        "fromDate and toDate must be provided as strings"
       );
-
-      // return sendApiResponse(res, 200, result, "Transaction list fetched");
-      return res.json(result)
-    } catch (error) {
-      next(error);
     }
+
+    const txType =
+      type === "credit" || type === "debit" ? (type as "credit" | "debit") : undefined;
+
+    const result = await this.service.getFilteredTransactions(
+      fromDate,
+      toDate,
+      txType
+    );
+
+    return res.json(result);
+  } catch (error) {
+    next(error);
   }
+}
 
-  async getWithdrawalList(req: Request, res: Response, next: NextFunction) {
-    try {
-      const rows = await this.service.getWithdrawalList();
-      // return sendApiResponse(res, 200, rows, "Withdrawal list fetched");
-      return res.json(rows)
-    } catch (err) {
-      next(err);
-    }
-  }
 
-  async updateTransactionStatus(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = Number(req.params.id);
-      const { status } = req.body;
+  // async getWithdrawalList(req: Request, res: Response, next: NextFunction) {
+  //   try {
+  //     const rows = await this.service.getWithdrawalList();
+  //     // return sendApiResponse(res, 200, rows, "Withdrawal list fetched");
+  //     return res.json(rows)
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
-      if (!id || !status) {
-        return sendApiResponse(res, 400, {}, "Transaction id and status required");
-      }
+  // async updateTransactionStatus(req: Request, res: Response, next: NextFunction) {
+  //   try {
+  //     const id = Number(req.params.id);
+  //     const { status } = req.body;
 
-      const result = await this.service.updateTransactionStatus(id, status);
+  //     if (!id || !status) {
+  //       return sendApiResponse(res, 400, {}, "Transaction id and status required");
+  //     }
 
-      // return sendApiResponse(res, 200, result, "Transaction status updated");
-      return res.json(result)
-    } catch (error) {
-      next(error);
-    }
-  }
+  //     const result = await this.service.updateTransactionStatus(id, status);
+
+  //     // return sendApiResponse(res, 200, result, "Transaction status updated");
+  //     return res.json(result)
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // }
 
   async refresh(req: Request, res: Response, next: NextFunction) {
     try {
@@ -173,6 +174,59 @@ export class AuthController {
       next(error);
     }
   }
+   async getAllBets(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await this.service.getAllBets();
+      return res.json({
+        success: true,
+        message: "Bets fetched successfully",
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 
+    async createBet(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        contest_id,
+        player_1_id,
+        player_2_id,
+        player_1_result,
+        player_2_result,
+        partially_cancelled_by_id
+      } = req.body;
+
+      // Validate essential fields
+      if (!contest_id || !player_1_id) {
+        return res.status(400).json({
+          success: false,
+          message: "contest_id and player_1_id are required"
+        });
+      }
+
+      // Prepare cleaned payload (optional values allowed)
+      const cleanPayload = processBetLogic({
+        contest_id,
+        player_1_id,
+        player_2_id,
+        player_1_result,
+        player_2_result,
+        partially_cancelled_by_id,
+      });
+
+      const result = await this.service.createBet(cleanPayload);
+
+      return res.json({
+        success: true,
+        message: "Bet created successfully",
+        data: result,
+      });
+
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

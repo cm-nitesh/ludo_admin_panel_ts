@@ -3,7 +3,8 @@ import { UserDao } from "../dao/userDao.js";
 import { APIError } from "../common/error.js";
 import { generateToken , generateRefreshToken, verifyTokenValidity} from "../utils/helpers.js";
 import { secret } from '../common/config.js';
-
+import { BetPayload } from "../utils/helpers.js";
+import { Bet } from "../models/betModel.js";
 
 const  JWT_REFRESH_TOKEN_EXP = secret.JWT_REFRESH_TOKEN_EXP as string;
  JWT_REFRESH_TOKEN_EXP
@@ -15,9 +16,9 @@ export class AuthService {
         this.dao = dao;
     }
 
-    async login(email: string, password: string): Promise<any> {
+    async login(email: string, encrypted_password: string): Promise<any> {
         try {
-            const admin = await this.dao.findAdminByEmailAndPassword(email, password);
+            const admin = await this.dao.findAdminByEmailAndPassword(email, encrypted_password);
             if (!admin) {
                 throw new APIError('admin is not exist', 400)
             }
@@ -28,7 +29,7 @@ export class AuthService {
             await this.dao.storeRefreshToken(admin.id, refreshToken,expiryDate)
             return {
                 id: admin.id,
-                name: admin.name,
+                // name: admin.name,
                 email:admin.email,
                 token,
                 refreshToken,
@@ -37,7 +38,7 @@ export class AuthService {
             }
 
         } catch (error: any) {
-            throw new APIError("Failed to login", 500);
+            throw new APIError(`Failed to login ${error}`, 500);
         }
     }
 
@@ -50,13 +51,13 @@ export class AuthService {
             return {
                 total_users: totalUsers,
                 total_recharge: txStats.total_recharge,
-                total_winning: txStats.total_winning,
-                total_profit: txStats.total_profit
+                // total_winning: txStats.total_winning,
+                // total_profit: txStats.total_profit
 
             };
 
         } catch (error: any) {
-            throw new APIError("Failed to fetch dashboard stats", 500);
+            throw new APIError(`Failed to fetch dashboard stats${error}`, 500);
         }
     };
 
@@ -71,7 +72,7 @@ export class AuthService {
             };
         } catch (error) {
             console.log(`error in get all users ${error}`)
-            throw new APIError("Failed to fetch in all users", 500);
+            throw new APIError(`Failed to fetch in all users${error}`, 500);
         }
 
     }
@@ -86,7 +87,7 @@ export class AuthService {
             return users;
         } catch (error) {
             console.log(`error in get all users ${error}`)
-            throw new APIError("Failed to fetch in users by id", 500);
+            throw new APIError(`Failed to fetch in users by id${error}`, 500);
         }
 
     }
@@ -126,65 +127,73 @@ export class AuthService {
     }
 
 
-  async getFilteredTransactions(fromDate: string, toDate: string, type?: "recharge" | "winning"): Promise<any[]> {
-    try {
-         const rows = await this.dao.getFilteredTransactions(fromDate, toDate, type);
+async getFilteredTransactions(
+  fromDate: string,
+  toDate: string,
+  type?: "credit" | "debit"
+): Promise<any[]> {
+  try {
+    const rows = await this.dao.getFilteredTransactions(fromDate, toDate, type);
 
-    return rows.map((tx: any) => ({
-      userId: tx.user.id,
-      username: tx.user.name,
-      date: tx.created_at,
-      transaction_type: tx.request_type,
-      amount: tx.amount
-    }));
-    } catch (error) {
-        throw new APIError(`failed in get filter transcation`, 500)
-    }
-   
-  };
+   return rows.map((tx: any) => ({
+  userId: tx.wallet.user.id,
+  username: tx.wallet.user.name,
+  date: tx.created_at,
+  transaction_type: tx.transaction_type,
+  request_type: tx.request?.request_type || null,
+  request_status: tx.request?.request_status || null,
+  amount: tx.amount,
+  closing_balance: tx.closing_balance,
+}));
 
-  async getWithdrawalList() {
-
-    try {
-          const rows = await this.dao.getWithdrawalList();
-
-  const result = [];
-
-  for (const tx of rows) {
-    const walletAmount = await this.dao.calculateWallet(tx.user_id);
-
-    result.push({
-      userId: tx.user.id,
-      username: tx.user.name,
-      contact: tx.user.contact,
-      current_wallet_amount: walletAmount,
-      withdrawal_amount: tx.amount,
-      status: tx.status
-    });
+  } catch (error) {
+    throw new APIError(`failed in get filter transaction${error}`, 500);
   }
-
-  return result;
-    } catch (error) {
-        console.log(error)
-        throw new APIError('Failed get withdrawal list amount', 500)
-    }
-
 }
 
-async updateTransactionStatus(id: number, status: "success" | "failed") {
 
-    try {
-         if (!["success", "failed"].includes(status)) {
-    throw new APIError("Invalid status value", 400);
-  }
+//   async getWithdrawalList() {
 
-  const updated = await this.dao.updateTransactionStatus(id, status);
-  return updated;
-    } catch (error) {
-        throw new APIError('failed in update of transaction status', 500)
-    }
+//     try {
+//           const rows = await this.dao.getWithdrawalList();
+
+//   const result = [];
+
+//   for (const tx of rows) {
+//     const walletAmount = await this.dao.calculateWallet(tx.user_id);
+
+//     result.push({
+//       userId: tx.user.id,
+//       username: tx.user.name,
+//       contact: tx.user.contact,
+//       current_wallet_amount: walletAmount,
+//       withdrawal_amount: tx.amount,
+//       status: tx.status
+//     });
+//   }
+
+//   return result;
+//     } catch (error) {
+//         console.log(error)
+//         throw new APIError('Failed get withdrawal list amount', 500)
+//     }
+
+// }
+
+// async updateTransactionStatus(id: number, status: "success" | "failed") {
+
+//     try {
+//          if (!["success", "failed"].includes(status)) {
+//     throw new APIError("Invalid status value", 400);
+//   }
+
+//   const updated = await this.dao.updateTransactionStatus(id, status);
+//   return updated;
+//     } catch (error) {
+//         throw new APIError('failed in update of transaction status', 500)
+//     }
  
-}
+// }
 
 async refreshToken(refreshToken: string) {
 
@@ -224,4 +233,32 @@ async logout(refreshToken: string) {
 
     }
  }
+
+ async getAllBets() {
+    try {
+       return await Bet.findAll({
+      attributes: [
+        "id",
+        "contest_id",
+        "player_1_id",
+        "player_2_id",
+        "bet_status",
+        "created_at"
+      ],
+      order: [["created_at", "DESC"]],
+    });
+    } catch (error) {
+      throw new APIError(`Failed to fetch bets: ${error}`, 500);
+    }
+  }
+
+
+  async createBet(data: BetPayload) {
+    try {
+      return await this.dao.createBet(data);
+    } catch (error) {
+      throw new APIError(`Failed to create bet: ${error}`, 500);
+    }
+  }
+
 }

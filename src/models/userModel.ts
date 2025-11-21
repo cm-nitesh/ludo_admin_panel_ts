@@ -1,8 +1,8 @@
-// models/User.ts
+// models/userModel.ts
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../common/config.js";
-import {Transaction} from "./transactionModel.js";
-
+import { WalletTransaction } from "./walletTransactionModel.js";
+import { WalletTransactionRequest } from "./walletTransactionRequest.js";
 
 export interface UserAttributes {
   id: number;
@@ -32,8 +32,10 @@ export interface UserAttributes {
 
 export type UserCreationAttributes = Optional<UserAttributes, "id">;
 
-export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes
-   {
+export class User
+  extends Model<UserAttributes, UserCreationAttributes>
+  implements UserAttributes
+{
   public id!: number;
   public provider!: string | null;
   public uid!: string | null;
@@ -91,20 +93,6 @@ User.init(
   {
     sequelize,
     tableName: "users",
-    timestamps: false, // already provided manually
+    timestamps: false,
   }
 );
-
-
-
-User.hasMany(Transaction,{
-    foreignKey: "user_id",
-    as :"transactions"
-});
-
-Transaction.belongsTo(User, {
-  foreignKey: "user_id",
-  as: "user",
-});
-
-

@@ -11,7 +11,6 @@ import { verifyAdmin } from '../utils/helpers.js';
 const router = express.Router();
 const controller = new AuthController(new AuthService(new UserDao()));
 const controllerAdmin = new AdminController();
-
 router.post('/admin-login',controller.login.bind(controller))
 router.get('/admin-dashboard',verifyAdmin , controller.getStats.bind(controller));
 router.get("/users", verifyAdmin, controller.getAllUser.bind(controller));

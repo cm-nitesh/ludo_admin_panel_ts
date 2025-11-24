@@ -374,7 +374,7 @@ async storeRefreshToken(adminId: number, token: string, expiry: Date): Promise<a
 async findAdminByRefreshToken(refreshToken: string) {
   try {
     const result = await sequelize.query(
-      `SELECT * FROM admin WHERE refresh_token = :token LIMIT 1`,
+      `SELECT * FROM admin_users WHERE refresh_token = :token LIMIT 1`,
       {
         replacements: { token: refreshToken },
         type: QueryTypes.SELECT,
@@ -389,7 +389,7 @@ async findAdminByRefreshToken(refreshToken: string) {
 async clearRefreshToken(refreshToken: string) {
   try {
     await sequelize.query(
-      `UPDATE admin 
+      `UPDATE admin_users 
          SET refresh_token = NULL,
              refresh_token_expiry = NULL
          WHERE refresh_token = :token`,

@@ -372,31 +372,39 @@ async storeRefreshToken(adminId: number, token: string, expiry: Date): Promise<a
 
 
 async findAdminByRefreshToken(refreshToken: string) {
+  try {
     const result = await sequelize.query(
-        `SELECT * FROM admin WHERE refresh_token = :token LIMIT 1`,
-        {
-            replacements: { token: refreshToken },
-            type: QueryTypes.SELECT
-        }
+      `SELECT * FROM admin WHERE refresh_token = :token LIMIT 1`,
+      {
+        replacements: { token: refreshToken },
+        type: QueryTypes.SELECT,
+      }
     );
     return result[0] || null;
+  } catch (error) {
+    console.error(`DAO Error: Failed to find admin by refresh token.`, error);
+    throw error;
+  }
 }
 async clearRefreshToken(refreshToken: string) {
-    try {
-          await sequelize.query(
-        `UPDATE admin 
+  try {
+    await sequelize.query(
+      `UPDATE admin 
          SET refresh_token = NULL,
              refresh_token_expiry = NULL
          WHERE refresh_token = :token`,
-        {
-            replacements: { token: refreshToken },
-            type: QueryTypes.UPDATE
-        }
+      {
+        replacements: { token: refreshToken },
+        type: QueryTypes.UPDATE,
+      }
     );
-    } catch (error) {
-        throw error;
-    }
-  
+  } catch (error) {
+    console.error(
+      `DAO Error: Failed to clear refresh token for admin.`,
+      error
+    );
+    throw error;
+  }
 }
 
 async getAllUserTransactionDetail(userId: number) {
@@ -509,7 +517,6 @@ async getAllBets() {
 }
 
   async createBet(data: any) {
-
     try {
       return await Bet.create(data);
     } catch (error) {

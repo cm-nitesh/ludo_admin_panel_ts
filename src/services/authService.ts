@@ -256,7 +256,14 @@ async logout(refreshToken: string) {
 
   async createBet(data: BetPayload) {
     try {
-      return await this.dao.createBet(data);
+      // Sanitize player_2_id: If it's falsy (e.g., 0, '', undefined, null),
+      // explicitly set it to null. Otherwise, use the provided value.
+      const sanitizedData = {
+        ...data,
+        player_2_id: data.player_2_id ? data.player_2_id : null,
+      };
+
+      return await this.dao.createBet(sanitizedData);
     } catch (error) {
       throw new APIError(`Failed to create bet: ${error}`, 500);
     }

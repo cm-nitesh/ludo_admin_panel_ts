@@ -9,13 +9,10 @@ const app = express();
 
 // --- CORS Configuration ---
 // Define the allowed origin for your frontend application.
-const corsOptions = {
-  origin: 'https://ludoking-admin.cubemoons.com',
-  optionsSuccessStatus: 200 // For legacy browser support
-};
+
 
 // Enable CORS with the specified options. This should come before your routes.
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(express.json());
 

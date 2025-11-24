@@ -23,9 +23,9 @@ export class UserDao {
     );
 
     return result[0] || null;
-  } catch (error) {
-    console.log(`Error in finding admin`, error);
-    throw error;
+  } catch (error: any) {
+    console.error("DAO Error: Failed to find admin by email.", error);
+    throw new Error(`Database operation failed while finding admin: ${error.message}`);
   }
 }
 
@@ -37,9 +37,9 @@ export class UserDao {
                 { type: QueryTypes.SELECT }
             );
             return Number(result[0]?.total_users ?? 0);
-        } catch (error) {
-            console.error('Error in getting total user count', error);
-            throw error;
+        } catch (error: any) {
+            console.error("DAO Error: Failed to get total user count.", error);
+            throw new Error(`Database operation failed while counting users: ${error.message}`);
         }
     }
 
@@ -57,14 +57,13 @@ export class UserDao {
             const row = result[0] ?? { total_recharge: '0', total_winning: '0' };
             return {
                 total_recharge: Number(row.total_recharge),
-                // total_winning: Number(row.total_winning),
-                // total_profit: Number(row.total_recharge) - Number(row.total_winning),
-
+                total_winning: Number(row.total_winning),
+                total_profit: Number(row.total_recharge) - Number(row.total_winning),
             };
 
-        } catch (error) {
-            console.error('Error in getting in transaction stats', error);
-            throw error;
+        } catch (error: any) {
+            console.error("DAO Error: Failed to get transaction stats.", error);
+            throw new Error(`Database operation failed while getting transaction stats: ${error.message}`);
         }
 
     };
@@ -120,9 +119,9 @@ export class UserDao {
           order: [["created_at", "DESC"]],
         });
     
-      } catch (error) {
-        console.error("Error in fetching users:", error);
-        throw error;
+      } catch (error: any) {
+        console.error("DAO Error: Failed to fetch all users.", error);
+        throw new Error(`Database operation failed while fetching users: ${error.message}`);
       }
     }
 
@@ -206,17 +205,18 @@ async getUserById(userId: number) {
     );
 
     return user;
-  } catch (error) {
-    console.error("Error in getUserById:", error);
-    throw new Error("Failed to fetch user by id");
+  } catch (error: any) {
+    console.error(`DAO Error: Failed to fetch user by id ${userId}.`, error);
+    throw new Error(`Database operation failed while fetching user details: ${error.message}`);
   }
 }
 
     async findUserById(id: number) {
         try {
             return await User.findOne({ where: { id } });
-        } catch (error) {
-            throw error;
+        } catch (error: any) {
+            console.error(`DAO Error: Failed to find user by id ${id}.`, error);
+            throw new Error(`Database operation failed while finding user: ${error.message}`);
         }
 
     }
@@ -227,8 +227,9 @@ async getUserById(userId: number) {
                 { status, status_description: description } as any,
                 { where: { id } }
             );
-        } catch (error) {
-            throw error;
+        } catch (error: any) {
+            console.error(`DAO Error: Failed to update status for user ${id}.`, error);
+            throw new Error(`Database operation failed while updating user status: ${error.message}`);
         }
 
     }
@@ -281,8 +282,9 @@ async getUserById(userId: number) {
 
         order: [["created_at", "DESC"]],
       });
-    } catch (error) {
-      throw error;
+    } catch (error: any) {
+      console.error("DAO Error: Failed to get filtered transactions.", error);
+      throw new Error(`Database operation failed while filtering transactions: ${error.message}`);
     }
   }
 
@@ -363,9 +365,9 @@ async storeRefreshToken(adminId: number, token: string, expiry: Date): Promise<a
     );
 
     return result;
-  } catch (error) {
-    console.log(`error in storing refresh token ${error}`);
-    throw error;
+  } catch (error: any) {
+    console.error(`DAO Error: Failed to store refresh token for admin ${adminId}.`, error);
+    throw new Error(`Database operation failed while storing refresh token: ${error.message}`);
   }
 }
 
@@ -381,9 +383,9 @@ async findAdminByRefreshToken(refreshToken: string) {
       }
     );
     return result[0] || null;
-  } catch (error) {
-    console.error(`DAO Error: Failed to find admin by refresh token.`, error);
-    throw error;
+  } catch (error: any) {
+    console.error("DAO Error: Failed to find admin by refresh token.", error);
+    throw new Error(`Database operation failed while finding admin by refresh token: ${error.message}`);
   }
 }
 async clearRefreshToken(refreshToken: string) {
@@ -398,12 +400,9 @@ async clearRefreshToken(refreshToken: string) {
         type: QueryTypes.UPDATE,
       }
     );
-  } catch (error) {
-    console.error(
-      `DAO Error: Failed to clear refresh token for admin.`,
-      error
-    );
-    throw error;
+  } catch (error: any) {
+    console.error("DAO Error: Failed to clear refresh token for admin.", error);
+    throw new Error(`Database operation failed while clearing refresh token: ${error.message}`);
   }
 }
 
@@ -487,9 +486,9 @@ async getAllUserTransactionDetail(userId: number) {
     );
 
     return user;
-  } catch (error) {
-    console.error("Error in getUserById:", error);
-    throw new Error("Failed to fetch user by id");
+  } catch (error: any) {
+    console.error(`DAO Error: Failed to get all transaction details for user ${userId}.`, error);
+    throw new Error(`Database operation failed while fetching user transaction details: ${error.message}`);
   }
 }
 
@@ -510,17 +509,19 @@ async getAllBets() {
       ],
       order: [["id", "DESC"]],
     });
-  } catch (error) {
-    throw new Error('failed to fetch bet ')
+  } catch (error: any) {
+    console.error("DAO Error: Failed to fetch all bets.", error);
+    throw new Error(`Database operation failed while fetching bets: ${error.message}`);
   }
     
 }
 
   async createBet(data: any) {
     try {
-      return await Bet.create(data);
-    } catch (error) {
-      throw new Error(`failed in creat bet${error}`)
+      return await Bet.create(data, { raw: true });
+    } catch (error: any) {
+      console.error("DAO Error: Failed to create bet.", error);
+      throw new Error(`Database operation failed while creating bet: ${error.message}`);
     }
     
   }

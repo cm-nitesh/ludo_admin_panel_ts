@@ -14,14 +14,16 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction): Promise<any> {
     const { password, email } = req.body;
-    let encrypted_password = password;
     try {
-      if (!encrypted_password || !email) {
-        return sendApiResponse(res, 400, {}, 'email and password required')
-
+      // Provide more specific validation feedback
+      if (!email) {
+        return sendApiResponse(res, 400, {}, 'Email is required.');
+      }
+      if (!password) {
+        return sendApiResponse(res, 400, {}, 'Password is required.');
       }
 
-      const result = await this.service.login(email, encrypted_password);
+      const result = await this.service.login(email, password);
       //  return sendApiResponse(res, 201, result, 'Admin login successfully')
       return res.json(result)
 
@@ -230,4 +232,3 @@ async getFilteredTransactions(req: Request, res: Response, next: NextFunction) {
     }
   }
 }
-

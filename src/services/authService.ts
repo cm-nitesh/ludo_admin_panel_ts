@@ -16,11 +16,12 @@ export class AuthService {
         this.dao = dao;
     }
 
-    async login(email: string, encrypted_password: string): Promise<any> {
+    async login(email: string, password: string): Promise<any> {
         try {
-            const admin = await this.dao.findAdminByEmailAndPassword(email, encrypted_password);
+            const admin = await this.dao.findAdminByEmailAndPassword(email, password);
             if (!admin) {
-                throw new APIError('admin is not exist', 400)
+                // Use a 401 status and a vague message for better security
+                throw new APIError('Invalid email or password.', 401);
             }
             const token = await generateToken(admin);
             const refreshToken = await generateRefreshToken(admin);
@@ -38,8 +39,11 @@ export class AuthService {
                 
             }
 
-        } catch (error: any) {
-            throw new APIError(`Failed to login ${error}`, 500);
+        } catch (error) {
+            // If it's an APIError we threw, re-throw it to preserve the status and message.
+            if (error instanceof APIError) throw error;
+            // Otherwise, wrap it in a generic server error.
+            throw new APIError(`Login failed due to a server error.`, 500);
         }
     }
 
@@ -47,13 +51,13 @@ export class AuthService {
         try {
             const totalUsers = await this.dao.getTotalUserCount();
             const txStats = await this.dao.getTransactionStats();
-        
+
 
             return {
                 total_users: totalUsers,
                 total_recharge: txStats.total_recharge,
-                // total_winning: txStats.total_winning,
-                // total_profit: txStats.total_profit
+                total_winning: txStats.total_winning ?? 0,
+                total_profit: txStats.total_profit ?? 0
 
             };
 

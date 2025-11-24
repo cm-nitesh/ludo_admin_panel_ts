@@ -24,7 +24,8 @@ export class AuthService {
             }
             const token = await generateToken(admin);
             const refreshToken = await generateRefreshToken(admin);
-            const expSeconds = Number(JWT_REFRESH_TOKEN_EXP.replace("d", "")) * 24 * 60 * 60; 
+            const days = parseInt(JWT_REFRESH_TOKEN_EXP || '7', 10);
+            const expSeconds = (isNaN(days) ? 7 : days) * 24 * 60 * 60;
             const expiryDate = new Date(Date.now() + expSeconds * 1000);
             await this.dao.storeRefreshToken(admin.id, refreshToken,expiryDate)
             return {

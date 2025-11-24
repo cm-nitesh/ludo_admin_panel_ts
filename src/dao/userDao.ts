@@ -69,51 +69,62 @@ export class UserDao {
 
     };
 
- async getAllUser() {
-  try {
-    return await User.findAll({
-      attributes: [
-        "id",
-        [Sequelize.col("name"), "username"],
-        "email",
-        "phone",
-        "provider",
-        "uid",
-        "status",
-        "referral_code",
-        "referred_by_id",
-        "upi_id",
-        "total_game_played",
-        [sequelize.col("created_at"), "registered_at"],
-        "updated_at",
-
-        [
-          sequelize.literal(`(
-            SELECT COALESCE(SUM(t.amount), 0)
-            FROM wallet_transactions AS t
-            WHERE t.wallet_transaction_request_id = "User".id AND t.transaction_for = 'wallet_recharge'
-          )`),
-          "total_transaction_recharge"
-        ],
-
-        [
-          sequelize.literal(`(
-            SELECT COALESCE(SUM(t.amount), 0)
-            FROM transactions AS t
-            WHERE t.user_id = "User".id AND t.request_type = 'winning'
-          )`),
-          "total_winning"
-        ],
-      ],
-
-      order: [["created_at", "DESC"]],
-    });
-
-  } catch (error) {
-    console.error("Error in fetching users:", error);
-    throw error;
-  }
-}
+    async getAllUser() {
+      try {
+        return await User.findAll({
+          attributes: [
+            "id",
+            [Sequelize.col("name"), "username"],
+            "email",
+            "phone",
+            "provider",
+            "uid",
+            "status",
+            "referral_code",
+            "referred_by_id",
+            "upi_id",
+            [
+              sequelize.literal(`(
+                SELECT COUNT(*)
+                FROM bets AS b
+                WHERE
+                  (b.player_1_id = "User".id OR b.player_2_id = "User".id)
+                  AND b.bet_status IN ('completed', 'partially_cancelled')
+              )`),
+              "total_game_played"
+            ],
+            [sequelize.col("created_at"), "registered_at"],
+            "updated_at",
+    
+            [
+              sequelize.literal(`(
+                SELECT COALESCE(SUM(wt.amount), 0)
+                FROM wallet_transactions AS wt
+                INNER JOIN wallets w ON w.id = wt.wallet_id
+                WHERE w.user_id = "User".id AND wt.transaction_for = 'wallet_recharge'
+              )`),
+              "total_transaction_recharge"
+            ],
+    
+            [
+              sequelize.literal(`(
+                SELECT COALESCE(SUM(wt.amount), 0)
+                FROM wallet_transactions AS wt
+                INNER JOIN wallets w ON w.id = wt.wallet_id
+                WHERE w.user_id = "User".id AND wt.transaction_for = 'winning'
+              )`),
+              "total_winning"
+            ],
+          ],
+    
+          order: [["created_at", "DESC"]],
+        });
+    
+      } catch (error) {
+        console.error("Error in fetching users:", error);
+        throw error;
+      }
+    }
 
 async getUserById(userId: number) {
   try {
@@ -393,69 +404,73 @@ async getAllUserTransactionDetail(userId: number) {
     const [user] = await sequelize.query(
       `
       SELECT 
-        "User"."id",
-        "User"."name" AS "username",
-        "User"."phone" AS "contact",
-        "total_game_played",
-        "User"."email",
-        "User"."created_at" AS "registered_at",
+        u.id,
+        u.name AS username,
+        u.phone AS contact,
+        u.email,
+        u.created_at AS registered_at,
 
         (
-          SELECT COALESCE(SUM(amount), 0)
-          FROM transactions AS t
-          WHERE t."user_id" = "User"."id"
-          AND t.request_type = 'recharge'
-        ) AS "total_transaction_recharge",
+          SELECT COALESCE(SUM(wt.amount), 0)
+          FROM wallet_transactions wt
+          INNER JOIN wallets w ON w.id = wt.wallet_id
+          WHERE w.user_id = u.id
+          AND wt.transaction_type = 'credit'
+        ) AS total_transaction_recharge,
 
-        (
-          SELECT COALESCE(SUM(amount), 0)
-          FROM transactions AS t
-          WHERE t."user_id" = "User"."id"
-          AND t.request_type = 'winning'
-        ) AS "total_winning",
-         (
-          SELECT COALESCE(SUM(amount), 0)
-          FROM transactions AS t
-          WHERE t."user_id" = "User"."id"
-          AND t.request_type = 'loss'
-        ) AS "total_loss",
 
         (
           SELECT json_agg(
             json_build_object(
-              'id', t.id,
-              'user_id', t.user_id,
-              'amount', t.amount,
-              'request_type', t.request_type,
-              'status', t.status,
-              'created_at', t.created_at,
-              'updated_at', t.updated_at
+              'id', wt.id,
+              'amount', wt.amount,
+              'transaction_type', wt.transaction_type,
+              'transaction_for', wt.transaction_for,
+              'closing_balance', wt.closing_balance,
+              'created_at', wt.created_at
             )
-            ORDER BY t.created_at DESC
+            ORDER BY wt.created_at DESC
           )
-          FROM transactions AS t
-          WHERE t."user_id" = "User"."id"
-        ) AS "transactions",
+          FROM wallet_transactions wt
+          INNER JOIN wallets w ON w.id = wt.wallet_id
+          WHERE w.user_id = u.id
+        ) AS wallet_transactions,
 
+        (
+          SELECT COUNT(*)
+          FROM bets b
+          WHERE 
+            (b.player_1_id = u.id OR b.player_2_id = u.id)
+            AND b.bet_status IN ('completed', 'partially_cancelled')
+        ) AS total_game_played,
+
+
+        -- ⭐ Game / Bet History JSON
         (
           SELECT json_agg(
             json_build_object(
-              'game_id', g.id,
-              'date', g.created_at,
-              'player1', g.player1,
-              'player2', g.player2,
-              'amount', g.room_amount,
-              'result', g.result
+              'bet_id', b.id,
+              'contest_id', b.contest_id,
+              'contest_amount',
+                (SELECT amount FROM contests c WHERE c.id = b.contest_id),
+              'player_1_id', b.player_1_id,
+              'player_2_id', b.player_2_id,
+              'bet_status', b.bet_status,
+              'player_1_result', b.player_1_result,
+              'player_2_result', b.player_2_result,
+              'roomcode', b.roomcode,
+              'partially_cancelled_by_id', b.partially_cancelled_by_id,
+              'played_at', b.created_at
             )
-            ORDER BY g.created_at DESC
+            ORDER BY b.created_at DESC
           )
-          FROM game AS g
-          WHERE g.player1 = "User".id
-             OR g.player2 = "User".id
-        ) AS "game_history"
+          FROM bets b
+          WHERE b.player_1_id = u.id OR b.player_2_id = u.id
+        ) AS game_history
 
-      FROM "users" AS "User"
-      WHERE "User"."id" = :userId
+
+      FROM users u
+      WHERE u.id = :userId
       `,
       {
         replacements: { userId },
@@ -503,4 +518,3 @@ async getAllBets() {
     
   }
 }
-

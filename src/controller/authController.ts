@@ -13,7 +13,8 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response, next: NextFunction): Promise<any> {
-    const { encrypted_password, email } = req.body;
+    const { password, email } = req.body;
+    let encrypted_password = password;
     try {
       if (!encrypted_password || !email) {
         return sendApiResponse(res, 400, {}, 'email and password required')

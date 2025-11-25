@@ -125,91 +125,91 @@ export class UserDao {
       }
     }
 
-async getUserById(userId: number) {
-  try {
-    const [user] = await sequelize.query(
-      `
-      SELECT 
-        u.id,
-        u.name AS username,
-        u.phone AS contact,
-        u.email,
-        u.created_at AS registered_at,
+    async getUserById(userId: number) {
+      try {
+        const [user] = await sequelize.query(
+          `
+          SELECT 
+            u.id,
+            u.name AS username,
+            u.phone AS contact,
+            u.email,
+            u.created_at AS registered_at,
+    
+            (
+              SELECT COALESCE(SUM(wt.amount), 0)
+              FROM wallet_transactions wt
+              INNER JOIN wallets w ON w.id = wt.wallet_id
+              WHERE w.user_id = u.id
+              AND wt.transaction_type = 'credit'
+            ) AS total_transaction_recharge,
+    
+    
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id', wt.id,
+                  'amount', wt.amount,
+                  'transaction_type', wt.transaction_type,
+                  'transaction_for', wt.transaction_for,
+                  'closing_balance', wt.closing_balance,
+                  'created_at', wt.created_at
+                )
+                ORDER BY wt.created_at DESC
+              )
+              FROM wallet_transactions wt
+              INNER JOIN wallets w ON w.id = wt.wallet_id
+              WHERE w.user_id = u.id
+            ) AS wallet_transactions,
+    
+            (
+              SELECT COUNT(*)
+              FROM bets b
+              WHERE 
+                (b.player_1_id = u.id OR b.player_2_id = u.id)
+                AND b.bet_status IN ('completed', 'partially_cancelled')
+            ) AS total_game_played,
+    
+    
+            -- ⭐ Game / Bet History JSON
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'bet_id', b.id,
+                  'contest_id', b.contest_id,
+                  'contest_amount',
+                    (SELECT amount FROM contests c WHERE c.id = b.contest_id),
+                  'player_1_id', b.player_1_id,
+                  'player_2_id', b.player_2_id,
+                  'bet_status', b.bet_status,
+                  'player_1_result', b.player_1_result,
+                  'player_2_result', b.player_2_result,
+                  'roomcode', b.roomcode,
+                  'partially_cancelled_by_id', b.partially_cancelled_by_id,
+                  'played_at', b.created_at
+                )
+                ORDER BY b.created_at DESC
+              )
+              FROM bets b
+              WHERE b.player_1_id = u.id OR b.player_2_id = u.id
+            ) AS game_history
+    
+    
+          FROM users u
+          WHERE u.id = :userId
+          `,
+          {
+            replacements: { userId },
+            type: QueryTypes.SELECT,
+          }
+        );
 
-        (
-          SELECT COALESCE(SUM(wt.amount), 0)
-          FROM wallet_transactions wt
-          INNER JOIN wallets w ON w.id = wt.wallet_id
-          WHERE w.user_id = u.id
-          AND wt.transaction_type = 'credit'
-        ) AS total_transaction_recharge,
-
-
-        (
-          SELECT json_agg(
-            json_build_object(
-              'id', wt.id,
-              'amount', wt.amount,
-              'transaction_type', wt.transaction_type,
-              'transaction_for', wt.transaction_for,
-              'closing_balance', wt.closing_balance,
-              'created_at', wt.created_at
-            )
-            ORDER BY wt.created_at DESC
-          )
-          FROM wallet_transactions wt
-          INNER JOIN wallets w ON w.id = wt.wallet_id
-          WHERE w.user_id = u.id
-        ) AS wallet_transactions,
-
-        (
-          SELECT COUNT(*)
-          FROM bets b
-          WHERE 
-            (b.player_1_id = u.id OR b.player_2_id = u.id)
-            AND b.bet_status IN ('completed', 'partially_cancelled')
-        ) AS total_game_played,
-
-
-        -- ⭐ Game / Bet History JSON
-        (
-          SELECT json_agg(
-            json_build_object(
-              'bet_id', b.id,
-              'contest_id', b.contest_id,
-              'contest_amount',
-                (SELECT amount FROM contests c WHERE c.id = b.contest_id),
-              'player_1_id', b.player_1_id,
-              'player_2_id', b.player_2_id,
-              'bet_status', b.bet_status,
-              'player_1_result', b.player_1_result,
-              'player_2_result', b.player_2_result,
-              'roomcode', b.roomcode,
-              'partially_cancelled_by_id', b.partially_cancelled_by_id,
-              'played_at', b.created_at
-            )
-            ORDER BY b.created_at DESC
-          )
-          FROM bets b
-          WHERE b.player_1_id = u.id OR b.player_2_id = u.id
-        ) AS game_history
-
-
-      FROM users u
-      WHERE u.id = :userId
-      `,
-      {
-        replacements: { userId },
-        type: QueryTypes.SELECT,
+        return user;
+      } catch (error: any) {
+        console.error(`DAO Error: Failed to fetch user by id ${userId}.`, error);
+        throw new Error(`Database operation failed while fetching user details: ${error.message}`);
       }
-    );
-
-    return user;
-  } catch (error: any) {
-    console.error(`DAO Error: Failed to fetch user by id ${userId}.`, error);
-    throw new Error(`Database operation failed while fetching user details: ${error.message}`);
-  }
-}
+    }
 
     async findUserById(id: number) {
         try {
@@ -235,58 +235,58 @@ async getUserById(userId: number) {
     }
 
 
-  async getFilteredTransactions(
-    fromDate?: string,
-    toDate?: string,
-    type?: "credit" | "debit"
-  ): Promise<any> {
-    try {
-      const whereClause: any = {};
-      if (type) {
-        whereClause.transaction_type = type;
-      }
-      if (fromDate && toDate) {
-        whereClause.created_at = {
-          [Op.between]: [new Date(fromDate), new Date(toDate)],
-        };
-      }
+      async getFilteredTransactions(
+        fromDate?: string,
+        toDate?: string,
+        type?: "credit" | "debit"
+      ): Promise<any> {
+        try {
+          const whereClause: any = {};
+          if (type) {
+            whereClause.transaction_type = type;
+          }
+          if (fromDate && toDate) {
+            whereClause.created_at = {
+              [Op.between]: [new Date(fromDate), new Date(toDate)],
+            };
+          }
 
-      return await WalletTransaction.findAll({
-        where: whereClause,
-        attributes: [
-          "id",
-          "amount",
-          "transaction_type",
-          "transaction_for",
-          "closing_balance",
-          "created_at",
-        ],
-        include: [
-  {
-    model: Wallet,
-    as: "wallet",
-    include: [
+          return await WalletTransaction.findAll({
+            where: whereClause,
+            attributes: [
+              "id",
+              "amount",
+              "transaction_type",
+              "transaction_for",
+              "closing_balance",
+              "created_at",
+            ],
+            include: [
       {
-        model: User,
-        as: "user",
-        attributes: ["id", "name", "email"]
+        model: Wallet,
+        as: "wallet",
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["id", "name", "email"]
+          }
+        ]
+      },
+      {
+        model: WalletTransactionRequest,
+        as: "request",
+        attributes: ["request_type", "request_status"]
       }
-    ]
-  },
-  {
-    model: WalletTransactionRequest,
-    as: "request",
-    attributes: ["request_type", "request_status"]
-  }
-],
+    ],
 
-        order: [["created_at", "DESC"]],
-      });
-    } catch (error: any) {
-      console.error("DAO Error: Failed to get filtered transactions.", error);
-      throw new Error(`Database operation failed while filtering transactions: ${error.message}`);
-    }
-  }
+            order: [["created_at", "DESC"]],
+          });
+        } catch (error: any) {
+          console.error("DAO Error: Failed to get filtered transactions.", error);
+          throw new Error(`Database operation failed while filtering transactions: ${error.message}`);
+        }
+      }
 
     // async getWithdrawalList(): Promise<any> {
 

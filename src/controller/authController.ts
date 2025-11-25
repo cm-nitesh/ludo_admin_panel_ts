@@ -61,9 +61,13 @@ export class AuthController {
   async getUserById(req: Request, res: Response, next: NextFunction) {
     const userId = Number(req.params.id);
     try {
-      const data = await this.service.getUserById(userId);
-      // return sendApiResponse(res, 200, data, "Users fetched successfully");
-      return res.json(data)
+      const { user, transactions, gameHistory } = await this.service.getUserById(userId);
+      const data = {
+        ...user,
+        transactions,
+        gameHistory,
+      };
+      return res.json(data);
     } catch (error) {
       next(error);
     }

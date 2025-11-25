@@ -83,18 +83,55 @@ export class AuthService {
     }
 
     async getUserById(userId: number) {
-
         try {
-            const users = await this.dao.getUserById(userId);
-            if (!users) {
+            const userData = await this.dao.getUserById(userId);
+            if (!userData) {
                 throw new APIError("User not found", 404);
             }
-            return users;
+    
+            const { wallet_transactions, game_history, ...userObj } = userData as any;
+    
+            const user = {
+                id: userObj.id,
+                username: userObj.username,
+                email: userObj.email,
+                phone: userObj.contact, // rename
+                registeredAt: userObj.registered_at, // rename
+                total_game_played: userObj.total_game_played,
+                total_transaction_recharge: userObj.total_transaction_recharge,
+                // total_winning is missing from DAO query for this specific user
+            };
+    
+            const transactions = (wallet_transactions || []).map((tx: any) => ({
+                id: tx.id,
+                created_at: tx.created_at,
+                amount: tx.amount,
+                transaction_type: tx.transaction_type,
+                method: tx.transaction_for, // Mapped from transaction_for
+            }));
+    
+            const gameHistory = (game_history || []).map((game: any) => ({
+                id: game.bet_id, // Mapped from bet_id
+                game_id: game.contest_id, // Mapped from contest_id
+                date: game.played_at, // Mapped from played_at
+                result: "N/A", // Result logic is complex and cannot be determined here
+                amount: game.contest_amount, // Mapped from contest_amount
+                player1: game.player_1_id,
+                player2: game.player_2_id,
+            }));
+    
+            return {
+                user,
+                transactions,
+                gameHistory,
+            };
         } catch (error) {
-            console.log(`error in get all users ${error}`)
-            throw new APIError(`Failed to fetch in users by id${error}`, 500);
+            console.log(`error in get user by id ${error}`);
+            if (error instanceof APIError) {
+                throw error;
+            }
+            throw new APIError(`Failed to fetch user by id`, 500);
         }
-
     }
 
     async updateUserStatus(userId: number, status: string, description:string):Promise<any>{

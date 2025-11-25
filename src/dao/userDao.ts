@@ -126,91 +126,92 @@ export class UserDao {
       }
     }
 
-async getUserById(userId: number) {
-  try {
-    const [user] = await sequelize.query(
-      `
-      SELECT 
-        u.id,
-        u.name AS username,
-        u.phone AS contact,
-        u.email,
-        u.created_at AS registered_at,
-
-        (
-          SELECT COALESCE(SUM(wt.amount), 0)
-          FROM wallet_transactions wt
-          INNER JOIN wallets w ON w.id = wt.wallet_id
-          WHERE w.user_id = u.id
-          AND wt.transaction_type = 'credit'
-        ) AS total_transaction_recharge,
-
-
-        (
-          SELECT json_agg(
-            json_build_object(
-              'id', wt.id,
-              'amount', wt.amount,
-              'transaction_type', wt.transaction_type,
-              'transaction_for', wt.transaction_for,
-              'closing_balance', wt.closing_balance,
-              'created_at', wt.created_at
-            )
-            ORDER BY wt.created_at DESC
+    async getUserById(userId: number) {
+      try {
+        const [user] = await sequelize.query(
+          `
+          WITH UserTransactions AS (
+            SELECT
+              w.user_id,
+              json_agg(
+                json_build_object(
+                  'id', wt.id,
+                  'amount', wt.amount,
+                  'transaction_type', wt.transaction_type,
+                  'transaction_for', wt.transaction_for,
+                  'closing_balance', wt.closing_balance,
+                  'created_at', wt.created_at
+                )
+                ORDER BY wt.created_at DESC
+              ) AS transactions
+            FROM wallet_transactions wt
+            INNER JOIN wallets w ON w.id = wt.wallet_id
+            WHERE w.user_id = :userId
+            GROUP BY w.user_id
           )
-          FROM wallet_transactions wt
-          INNER JOIN wallets w ON w.id = wt.wallet_id
-          WHERE w.user_id = u.id
-        ) AS wallet_transactions,
-
-        (
-          SELECT COUNT(*)
-          FROM bets b
-          WHERE 
-            (b.player_1_id = u.id OR b.player_2_id = u.id)
-            AND b.bet_status IN ('completed', 'partially_cancelled')
-        ) AS total_game_played,
-
-
-        -- ⭐ Game / Bet History JSON
-        (
-          SELECT json_agg(
-            json_build_object(
-              'bet_id', b.id,
-              'contest_id', b.contest_id,
-              'contest_amount',
-                (SELECT amount FROM contests c WHERE c.id = b.contest_id),
-              'player_1_id', b.player_1_id,
-              'player_2_id', b.player_2_id,
-              'bet_status', b.bet_status,
-              'player_1_result', b.player_1_result,
-              'player_2_result', b.player_2_result,
-              'roomcode', b.roomcode,
-              'partially_cancelled_by_id', b.partially_cancelled_by_id,
-              'played_at', b.created_at
-            )
-            ORDER BY b.created_at DESC
-          )
-          FROM bets b
-          WHERE b.player_1_id = u.id OR b.player_2_id = u.id
-        ) AS game_history
-
-
-      FROM users u
-      WHERE u.id = :userId
-      `,
-      {
-        replacements: { userId },
-        type: QueryTypes.SELECT,
+          SELECT 
+            u.id,
+            u.name AS username,
+            u.phone AS contact,
+            u.email,
+            u.created_at AS registered_at,
+    
+            (
+              SELECT COALESCE(SUM(wt.amount), 0)
+              FROM wallet_transactions wt
+              INNER JOIN wallets w ON w.id = wt.wallet_id
+              WHERE w.user_id = u.id
+              AND wt.transaction_type = 'credit'
+            ) AS total_transaction_recharge,
+    
+            COALESCE(ut.transactions, '[]'::json) AS wallet_transactions,
+    
+            (
+              SELECT COUNT(*)
+              FROM bets b
+              WHERE 
+                (b.player_1_id = u.id OR b.player_2_id = u.id)
+                AND b.bet_status IN ('completed', 'partially_cancelled')
+            ) AS total_game_played,
+    
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'bet_id', b.id,
+                  'contest_id', b.contest_id,
+                  'contest_amount',
+                    (SELECT amount FROM contests c WHERE c.id = b.contest_id),
+                  'player_1_id', b.player_1_id,
+                  'player_2_id', b.player_2_id,
+                  'bet_status', b.bet_status,
+                  'player_1_result', b.player_1_result,
+                  'player_2_result', b.player_2_result,
+                  'roomcode', b.roomcode,
+                  'partially_cancelled_by_id', b.partially_cancelled_by_id,
+                  'played_at', b.created_at
+                )
+                ORDER BY b.created_at DESC
+              )
+              FROM bets b
+              WHERE b.player_1_id = u.id OR b.player_2_id = u.id
+            ) AS game_history
+    
+          FROM users u
+          LEFT JOIN UserTransactions ut ON u.id = ut.user_id
+          WHERE u.id = :userId
+          `,
+          {
+            replacements: { userId },
+            type: QueryTypes.SELECT,
+          }
+        );
+    
+        return user;
+      } catch (error) {
+        console.error("Error in getUserById:", error);
+        throw new Error("Failed to fetch user by id");
       }
-    );
-
-    return user;
-  } catch (error) {
-    console.error("Error in getUserById:", error);
-    throw new Error("Failed to fetch user by id");
-  }
-}
+    }
 
     async findUserById(id: number) {
         try {

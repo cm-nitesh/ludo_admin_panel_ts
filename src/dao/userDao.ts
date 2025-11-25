@@ -23,9 +23,9 @@ export class UserDao {
     );
 
     return result[0] || null;
-  } catch (error) {
-    console.log(`Error in finding admin`, error);
-    throw error;
+  } catch (error: any) {
+    console.error("DAO Error: Failed to find admin by email.", error);
+    throw new Error(`Database operation failed while finding admin: ${error.message}`);
   }
 }
 
@@ -37,9 +37,9 @@ export class UserDao {
                 { type: QueryTypes.SELECT }
             );
             return Number(result[0]?.total_users ?? 0);
-        } catch (error) {
-            console.error('Error in getting total user count', error);
-            throw error;
+        } catch (error: any) {
+            console.error("DAO Error: Failed to get total user count.", error);
+            throw new Error(`Database operation failed while counting users: ${error.message}`);
         }
     }
 
@@ -57,14 +57,13 @@ export class UserDao {
             const row = result[0] ?? { total_recharge: '0', total_winning: '0' };
             return {
                 total_recharge: Number(row.total_recharge),
-                // total_winning: Number(row.total_winning),
-                // total_profit: Number(row.total_recharge) - Number(row.total_winning),
-
+                total_winning: Number(row.total_winning),
+                total_profit: Number(row.total_recharge) - Number(row.total_winning),
             };
 
-        } catch (error) {
-            console.error('Error in getting in transaction stats', error);
-            throw error;
+        } catch (error: any) {
+            console.error("DAO Error: Failed to get transaction stats.", error);
+            throw new Error(`Database operation failed while getting transaction stats: ${error.message}`);
         }
 
     };
@@ -120,9 +119,9 @@ export class UserDao {
           order: [["created_at", "DESC"]],
         });
     
-      } catch (error) {
-        console.error("Error in fetching users:", error);
-        throw error;
+      } catch (error: any) {
+        console.error("DAO Error: Failed to fetch all users.", error);
+        throw new Error(`Database operation failed while fetching users: ${error.message}`);
       }
     }
 
@@ -397,7 +396,7 @@ async clearRefreshToken(refreshToken: string) {
     } catch (error) {
         throw error;
     }
-  
+
 }
 
 async getAllUserTransactionDetail(userId: number) {

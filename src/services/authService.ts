@@ -96,6 +96,7 @@ export class AuthService {
                 username: userObj.username,
                 email: userObj.email,
                 phone: userObj.contact, // rename
+                status: userObj.status,
                 registeredAt: userObj.registered_at, // rename
                 total_game_played: userObj.total_game_played,
                 total_transaction_recharge: userObj.total_transaction_recharge,

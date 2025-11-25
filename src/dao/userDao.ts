@@ -134,6 +134,7 @@ export class UserDao {
             u.name AS username,
             u.phone AS contact,
             u.email,
+            u.status,
             u.created_at AS registered_at,
     
             (
@@ -518,11 +519,10 @@ async getAllBets() {
 
   async createBet(data: any) {
     try {
-      return await Bet.create(data, { raw: true });
+      return await Bet.create(data);
     } catch (error: any) {
       console.error("DAO Error: Failed to create bet.", error);
       throw new Error(`Database operation failed while creating bet: ${error.message}`);
     }
-    
   }
 }

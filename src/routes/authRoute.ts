@@ -29,5 +29,4 @@ router.get("/bets", verifyAdmin, controller.getAllBets.bind(controller));
 router.post("/bets", verifyAdmin,controller.createBet.bind(controller));
 
 
-
 export default router;

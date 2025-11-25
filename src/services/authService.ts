@@ -110,15 +110,50 @@ export class AuthService {
                 method: tx.transaction_for, // Mapped from transaction_for
             }));
     
-            const gameHistory = (game_history || []).map((game: any) => ({
-                id: game.bet_id, // Mapped from bet_id
-                game_id: game.contest_id, // Mapped from contest_id
-                date: game.played_at, // Mapped from played_at
-                result: "N/A", // Result logic is complex and cannot be determined here
-                amount: game.contest_amount, // Mapped from contest_amount
-                player1: game.player_1_id,
-                player2: game.player_2_id,
-            }));
+            const gameHistory = (game_history || []).map((game: any) => {
+                let result = "N/A";
+                let type: "winning" | undefined = undefined;
+    
+                if (game.player_1_id === userId) {
+                    if (game.player_1_result === 'win') {
+                        result = 'win';
+                        type = 'winning';
+                    } else if (game.player_1_result === 'loss') {
+                        result = 'loss';
+                    } else if (game.player_1_result === 'draw') {
+                        result = 'draw';
+                    }
+                } else if (game.player_2_id === userId) {
+                    if (game.player_2_result === 'win') {
+                        result = 'win';
+                        type = 'winning';
+                    } else if (game.player_2_result === 'loss') {
+                        result = 'loss';
+                    } else if (game.player_2_result === 'draw') {
+                        result = 'draw';
+                    }
+                }
+                
+                if (game.bet_status === 'cancelled' || game.bet_status === 'partially_cancelled') {
+                    result = game.bet_status;
+                }
+    
+                const gameHistoryEntry: any = {
+                    id: game.bet_id,
+                    game_id: game.contest_id,
+                    date: game.played_at,
+                    result: result,
+                    amount: game.contest_amount,
+                    player1: game.player_1_id,
+                    player2: game.player_2_id,
+                };
+    
+                if (type) {
+                    gameHistoryEntry.type = type;
+                }
+    
+                return gameHistoryEntry;
+            });
     
             return {
                 user,

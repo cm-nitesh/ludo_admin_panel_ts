@@ -32,6 +32,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     });
   }
 
+
   // For all other errors, send a generic 500 Internal Server Error
   return res.status(500).json({
     success: false,

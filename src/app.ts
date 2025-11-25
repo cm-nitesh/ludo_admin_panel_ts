@@ -16,7 +16,7 @@ app.use(cors());
 
 app.use(express.json());
 
-app.use('/api', authRoute);
+app.use('/api', authRoute);  
 app.use('/api/bets', betRoute);
 
 // --- Global Error Handling Middleware ---
